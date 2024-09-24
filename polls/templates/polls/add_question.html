@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">Add a New Question</h2>
+
+    {% if error_message %}
+        <div class="alert alert-danger">{{ error_message }}</div>
+    {% endif %}
+
+    <form id="question-form" method="post" class="mt-4">
+        {% csrf_token %}
+
+        <!-- Question Text -->
+        <div class="mb-3">
+            {{ question_form.question_text.label_tag }}
+            {{ question_form.question_text }}
+        </div>
+
+        <!-- Choices Section -->
+        <h4 class="text-center">Add Choices (minimum 3, up to 10)</h4>
+        {{ formset.management_form }}
+        <div id="choices">
+            {% for form in formset %}
+                <div class="mb-3">
+                    {{ form.choice_text.label_tag }}
+                    {{ form.choice_text }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Button to Add More Choices -->
+        <button type="button" id="add-choice" class="btn btn-outline-primary mb-3">Add another choice</button>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+
+    <!-- Back to Polls List Button -->
+    <a href="{% url 'polls:index' %}" class="btn btn-secondary mt-3">Back to Polls List</a>
+</div>
+
+<!-- Hidden empty form template for JavaScript to clone -->
+<script type="text/template" id="empty-form-template">
+    <div class="mb-3">
+        {{ formset.empty_form.choice_text.label_tag }}
+        {{ formset.empty_form.choice_text }}
+    </div>
+</script>
+
+<script>
+    // Function to dynamically add new choice fields
+    document.getElementById('add-choice').addEventListener('click', function () {
+        var choicesDiv = document.getElementById('choices');
+        var totalForms = document.getElementById('id_form-TOTAL_FORMS');
+        var currentForms = parseInt(totalForms.value);
+
+        // Limit the total number of choices to 10
+        if (currentForms < 10) {
+            var formIndex = currentForms;
+
+            // Get the template and replace __prefix__ with the formIndex
+            var template = document.getElementById('empty-form-template').innerHTML;
+            var newFormHtml = template.replace(/__prefix__/g, formIndex);
+
+            // Insert the new form into the page
+            choicesDiv.insertAdjacentHTML('beforeend', newFormHtml);
+
+            totalForms.value = currentForms + 1;
+        } else {
+            alert("You can only add up to 10 choices.");
+        }
+    });
+
+    // Basic client-side validation before submission
+    document.getElementById('question-form').addEventListener('submit', function (e) {
+        var question = document.getElementById('id_question_text').value.trim();
+        var choiceTextareas = document.querySelectorAll('textarea[name^="form-"][name$="-choice_text"]');
+        var filledChoices = 0;
+
+        // Check if the question is empty
+        if (!question) {
+            e.preventDefault(); // Prevent form submission
+            alert("Please enter a question.");
+            return;
+        }
+
+        // Count the number of filled choices
+        choiceTextareas.forEach(function (textarea) {
+            if (textarea.value.trim() !== "") {
+                filledChoices++;
+            }
+        });
+
+        // Check if there are fewer than 3 choices
+        if (filledChoices < 3) {
+            e.preventDefault(); // Prevent form submission
+            alert("Please enter at least 3 choices.");
+        }
+    });
+</script>
+{% endblock %}
